@@ -7,7 +7,6 @@ Ruby 1.9.1
 gdata 1.1.1
 http://code.google.com/p/gdata-ruby-util/downloads/list
 
-
 # Usage
 
 after edit files "bin/mblogger-config" and "bin/mblogger-run.rb",
