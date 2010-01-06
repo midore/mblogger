@@ -1,0 +1,30 @@
+module Mblogger
+
+  module Config
+
+    def data_dir
+     '/path/to/your-data-directory/'
+    end
+
+    def xid
+      'your blogger url id'
+    end
+
+    def ac
+      'your account'
+    end
+
+    def pw
+      'your password'
+    end
+
+    def xname
+      'your appname'
+    end
+
+  end
+
+end
+
+$MBLOGGER = Mblogger::Config
+

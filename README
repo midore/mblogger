@@ -1,0 +1,65 @@
+Usage
+
+after edit files "bin/mdconfig" and "bin/mdiary-run.rb",
+
+[get entry in current month]
+$ ./mblogger-run.rb -blg-get
+
+[get entry]
+$ ./mblogger-run.rb -blg-get 2010-01
+
+[print xml]
+$ ./mblogger-run.rb -blg-doc ~/draft.txt
+
+[post entry]
+$ ./mblogger-run.rb -blg-post ~/draft.txt
+
+[update entry]
+$ ./mblogger-run.rb -blg-up 2010-01-01.txt
+
+[delete entry]
+$ ./mblogger-run.rb -blg-del 2010-01-01.txt
+
+
+[Text]
+$ cat draft.txt
+--control
+yes
+--category
+test,blogger,music
+--title
+New Title
+--content
+test post.
+second line.
+link line <a href='http://github.com'>git.com</a> ... 
+
+today's bgm
+<blockquote>
+1, court and spark
+2, edith and the kingpin
+...
+</blockquote>
+
+brank line
+
+<pre>
+def hello
+  puts "ruby is fun\n"
+end
+</pre>
+last line.
+
+
+[Alias]
+$ vi .bashrc
+# add 
+ alias 'blogger'='/path/to/mblogger/bin/mblogger-run.rb'
+
+$ source .bashrc
+$ blogger test.txt
+
+Licence
+Copyright (C) 2009 midore
+mdiary is licensed under the GPLv2
+
