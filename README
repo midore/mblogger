@@ -1,6 +1,19 @@
-Usage
+Mblogger
 
-after edit files "bin/mdconfig" and "bin/mdiary-run.rb",
+
+# Dependency
+
+Ruby 1.9.1
+gdata 1.1.1
+http://code.google.com/p/gdata-ruby-util/downloads/list
+
+
+# Usage
+
+after edit files "bin/mblogger-config" and "bin/mblogger-run.rb",
+
+[help]
+$ ./mblogger-run.rb -h
 
 [get entry in current month]
 $ ./mblogger-run.rb -blg-get
