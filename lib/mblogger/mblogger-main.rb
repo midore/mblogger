@@ -145,8 +145,10 @@ module Mblogger
       n = r.status_code
       print "StatusCode: #{n}\n"
       if str == 'post'
-        success_msg(str) if n == 201
-        res_to_h(r) if n == 201
+        if n == 201
+          success_msg(str)
+          return res_to_h(r)
+        end
       else
         success_msg(str) if n == 200
       end
@@ -180,10 +182,15 @@ module Mblogger
       h[:edit_id] = res_editid
       h[:published] = get_xstr('published')
       h[:updated] = get_xstr('updated')
-      hash_print(h)
+      print_hash(h)
       return h unless h.empty?
     end
 
+    def print_hash(h)
+      print "\n"
+      h.each{|k,v| print k.upcase, ": ", v, "\n" if v}
+    end
+ 
     def res_editid
       edit = @xr.elements["link[@rel='edit']"].attributes['href']
       edit.to_s.gsub(/.*?default\//,'')
@@ -226,7 +233,7 @@ module Mblogger
         h[:updated] = get_xstr('updated')
         h[:control] = get_xstr('app:control/app:draft')
         print "-"*5, "\n"
-        hash_print(h)
+        print_hash(h)
       }
     end
   
