@@ -7,7 +7,7 @@ module Mblogger
     end
 
     def xid
-      'your blogger url id'
+      'your BlogID'
     end
 
     def ac
