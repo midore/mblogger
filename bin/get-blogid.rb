@@ -21,7 +21,6 @@ doc.root.get_elements('entry/link').each{|x|
   rel, hr  = x.attributes['rel'], x.attributes['href']
   if /post/.match(rel)
     (m = /feeds\/(.*?)\/posts/.match(hr)) ? blogid = m[1] : nil
-    blogid = m[1] if m
   elsif /alternate/.match(rel)
     blogurl = hr
   end
