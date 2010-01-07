@@ -9,6 +9,7 @@ Dependency
 Usage
  # get your BlogID
  $ cd mblogger/bin
+ $ vi get-bloggerid.rb # profileid = 'your ProfileID'
  $ ruby191 get-bloggerid.rb
  # =>
  BlogTitle=> your blog title
