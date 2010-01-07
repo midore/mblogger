@@ -1,15 +1,21 @@
 Mblogger
+ Blogger User's tool
 
+Dependency
+ Ruby 1.9.1
+ gdata 1.1.1
+ http://code.google.com/p/gdata-ruby-util/downloads/list
 
-# Dependency
+Usage
+ # get your BlogID
+ $ cd mblogger/bin
+ $ ruby191 get-bloggerid.rb
+ # =>
+ BlogTitle=> your blog title
+ BlogURL=> http://xxxxxxx.blogspot.com/
+ BlogID => xxxxxxxxx
 
-Ruby 1.9.1
-gdata 1.1.1
-http://code.google.com/p/gdata-ruby-util/downloads/list
-
-# Usage
-
-after edit files "bin/mblogger-config" and "bin/mblogger-run.rb",
+After edit files "bin/mblogger-config" and "bin/mblogger-run.rb",
 
 [help]
 $ ./mblogger-run.rb -h
@@ -72,6 +78,6 @@ $ source .bashrc
 $ blogger test.txt
 
 Licence
-Copyright (C) 2009 midore
-mdiary is licensed under the GPLv2
+ Copyright (C) 2009 midore
+ mdiary is licensed under the GPLv2
 
