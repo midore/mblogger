@@ -327,9 +327,10 @@ module Mblogger
     end
 
     def getpath
-      t = Time.parse(@pubd).strftime("%Y-%m-%dT%H-%M-%S")
-      f = t + "-" + @h[:edit_id] + ".txt"
-      File.join(@dir, f)
+      subd = File.join(@dir, Time.parse(@pubd).strftime("%Y-%m"))
+      Dir.mkdir(subd) unless File.exist?(subd)
+      f = Time.parse(@pubd).strftime("%Y-%m-%dT%H-%M-%S") + "-" + @h[:edit_id] + ".txt"
+      File.join(subd, f)
     end
 
   end
