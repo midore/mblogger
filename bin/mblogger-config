@@ -19,7 +19,7 @@ module Mblogger
     end
 
     def xname
-      'your appname'
+      'your_appname'
     end
 
   end
