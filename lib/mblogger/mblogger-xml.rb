@@ -3,15 +3,22 @@ module Mblogger
   class Mbxml
 
     def to_xml(h, content)
-      @content = content
-      @h = h
-      return nil unless set_doc
-      set_basic unless @xentry.nil?
-      set_div
-      cleanup
-      return @xentry
+      begin
+        @content, @h = content, h
+        set_doc
+        return nil unless @xentry
+        set_basic
+        set_div
+        cleanup
+        return @xentry
+      rescue NoMethodError
+        print "Error: XML Parse\n"
+      rescue RuntimeError
+        print "Error: Tag Issue\n"
+      end
     end
 
+    private
     def get_ele(s)
       @doc.root.elements[s]
     end
@@ -152,19 +159,24 @@ module Mblogger
     def tag_a(line)
       return nil if line =~ /<[a|\/a]>/
       all = /<a\shref=["'](.*?)["']>(.*?)<\/a>/.match(line)
+      http = /http:\/\//.match(all[1]) if all
+      (print "MISSED LINK TAG...#{line}\n"; raise) if (all[2].nil? or http.nil?) 
       @ep.add_element("a",{'href'=>all[1]}).add_text(all[2])
     end
 
     def tag_del(line)
       del = /<del>(.*?)<\/del>/.match(line)
+      (print "MISSED DEL TAG...#{line}\n"; raise) if del.nil?
       @ep.add_element("del").add_text(del[1])
     end
 
     def tag_img(line)
-      href = /<img\ssrc=["'](.*?)["']/.match(line)
+      src = /<img\ssrc=["'](.*?)["']/.match(line)
       alt = /alt=["'](.*?)["']/.match(line)
-      img = @ep.add_element("img",{'src'=>href[1]})
-      img.add_attribute({'alt'=>alt[1]}) if alt
+      (print "MISSED IMG TAG...#{line}\n"; raise) unless src
+      img = @ep.add_element("img")
+      img.add_attributes('src'=>src[1]) if src
+      img.add_attributes('alt'=>alt[1]) if alt
     end
 
     def xmldoc

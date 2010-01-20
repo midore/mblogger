@@ -2,69 +2,66 @@ module Mblogger
 
   class Xblog
 
-    def base(req, x)
-      data, eid = setup(req, x)
+    def initialize(req, path)
+      @req = req
+      return @year_month = path if req == '-blg-get'
+      @t_head, @t_xdoc, @t_body = Xdoc.new(path).base
+      return err_msg(4) if @t_head.nil? 
+      @t_id = @t_head[:edit_id]
+      @t_body = nil unless req == '-blg-post'
+    end
+
+    def base
+      print_t_head if @t_head 
       begin
-        case req
-        when '-blg-doc' then g_doc(data)
-        when '-blg-get' then g_get(x)
-        when '-blg-post' then g_post(data, eid)
-        when '-blg-up' then g_up(data, eid)
-        when '-blg-del' then g_del(eid)
+        case @req
+        when '-blg-doc' then g_doc
+        when '-blg-get' then g_get
+        when '-blg-post' then g_post
+        when '-blg-up' then g_up
+        when '-blg-del' then g_del
         end
       rescue
       end
     end
 
     private
-    def setup(req, x)
-      unless req == '-blg-get'
-        dc = Xdoc.new(x)
-        return nil unless h = dc.base
-        @t_head = h
-        data = dc.data(h)
-        eid = h[:edit_id]
-        @t_body = dc.str_content unless req == '-blg-del'
-        print_t_head
-        return [data, eid]
-      end
-    end
-
     def err_msg(n)
       case n
       when 1 then print "Error1: posted, already.\n"
-      when 2 then print "Error2: need to post request, before update.\n"
+      when 2 then print "Error2: need to post, before update.\n"
       when 3 then print "Error3: edit_id is empty.\n"
+      when 4 then print "Error4: text file format.\n"
       end
     end
 
-    def g_doc(data)
-      print data, "\n"
+    def g_doc
+      print @t_xdoc, "\n"
     end
 
-    def g_get(x)
-      Start.new().xget(x)
+    def g_get
+      Start.new().xget(@year_month)
     end
 
-    def g_post(data, eid)
-      return err_msg(1) unless eid.nil?
-      return nil unless data
-      rh = Start.new().xpost(data)
+    def g_post
+      return err_msg(1) unless @t_id.nil?
+      return nil unless @t_xdoc
+      rh = Start.new().xpost(@t_xdoc)
       return nil unless rh
       h = @t_head.merge(rh)
       h[:content] = @t_body
       SaveText.new(h).base
     end
 
-    def g_up(data, eid)
-      return nil unless data
-      return err_msg(2) unless eid
-      Start.new(eid).xup(data)
+    def g_up
+      return err_msg(2) if @t_id.nil?
+      return nil if @t_xdoc.nil?
+      Start.new(@t_id).xup(@t_xdoc)
     end
 
-    def g_del(eid)
-      return err_msg(3) unless eid
-      Start.new(eid).xdel
+    def g_del
+      return err_msg(3) if @t_id.nil?
+      Start.new(@t_id).xdel
     end
 
     def print_t_head
@@ -145,10 +142,9 @@ module Mblogger
       n = r.status_code
       print "StatusCode: #{n}\n"
       if str == 'post'
-        if n == 201
-          success_msg(str)
-          return res_to_h(r)
-        end
+        return nil unless n == 201
+        success_msg(str)
+        return res_to_h(r)
       else
         success_msg(str) if n == 200
       end
@@ -242,55 +238,47 @@ module Mblogger
   class Xdoc
 
     def initialize(path)
-      @ary = IO.readlines(path)
+      ary = IO.readlines(path)
+      @mark = ary.find_index("--content\n")
+      return check(nil) unless @mark
+      content_h = ary[@mark+1..ary.size]
+      content_s = content_h.join().strip
+      return check(nil) if content_s.empty?
+      @meta, @content = to_meta(ary), content_s
+      @xdoc = to_xml(@meta, content_h) if @meta 
     end
 
     def base
-      return nil unless h = ary_to_h
-      return h
-    end
-
-    def content
-      mark = @ary.find_index("--content\n")
-      @ary[mark+1..@ary.size]
-    end
-
-    def str_content
-      str = content.join().strip
-      (str.empty?) ? nil : str
-    end
-
-    def data(h)
-      Mbxml.new().to_xml(h, content)
+      return nil if (@meta.nil? or @xdoc.nil?)
+      return [@meta, @xdoc, @content]
     end
 
     private
-    def check(h)
-      return print "TextError: parse text.\n" unless h
-      return print "TextError: category\n" unless h[:category]
-      return print "TextError: title\n" unless h[:title]
-      return print "TextError: control\n" unless h[:control]
-      return true
+    def to_xml(h, arr)
+      Mbxml.new().to_xml(h, arr) 
     end
 
-    def ary_to_h
-      return check(nil) unless mark = @ary.find_index("--content\n")
-      h, k = text_h, nil
-      @ary.each_with_index{|x,y|
-        break if mark == y
+    def to_meta(ary)
+      h, k = need_key, nil
+      ary.each_with_index{|x,y|
+        break if @mark == y
         next if x.strip.empty?
         m = /^--(.*?)\n$/.match(x)
-        unless m
-          h[k] = x.strip if h.key?(k)
-        else
-          k = m[1].to_sym
-        end
+        m ? k = m[1].to_sym : ( h[k] = x.strip if h.key?(k) )
       }
       return nil unless check(h)
       return h
     end
 
-    def text_h
+    def check(h)
+      return print "Error: content.\n" unless h
+      return print "Error: category\n" unless h[:category]
+      return print "Error: title\n" unless h[:title]
+      return print "Error: control\n" unless h[:control]
+      return true
+    end
+
+    def need_key
       h = Hash.new
       a = [:edit_id, :published, :updated, :date, :control, :category, :title]
       a.each{|s| h[s.to_sym] = nil}
@@ -311,8 +299,7 @@ module Mblogger
     def base
       path, data = getpath, getdata
       if File.exist?(path)
-        print "\nError: Same name file is exist.\nFile: #{path}\n" 
-        return nil
+        return print "\nError: Same name file is exist.\nFile: #{path}\n" 
       end
       File.open(path, 'w:utf-8'){|f| f.print data}
       print "Saved: #{path}\n"
