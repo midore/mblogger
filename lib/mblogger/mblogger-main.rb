@@ -120,6 +120,7 @@ module Mblogger
     def request_get(u)
       r = clbase.get(u)
       res_to_getreq(r)
+      print "\n\n"
       code_msg(r, 'get')
     end
 
@@ -223,16 +224,19 @@ module Mblogger
     def res_to_getreq(r)
       r.to_xml.elements.each('entry'){|x|
         h, @xr = {}, x
+        link = ''
         h[:title] = get_xstr('title')
         h[:edit_id] = res_editid
         h[:published] = get_xstr('published')
         h[:updated] = get_xstr('updated')
         h[:control] = get_xstr('app:control/app:draft')
+        x.get_elements('link').select{|y| link = y.attributes['href'] if y.attributes['rel'] == 'alternate' }
+        h[:url] = link
         print "-"*5, "\n"
         print_hash(h)
       }
     end
-  
+
   end
 
   class Xdoc
