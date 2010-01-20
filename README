@@ -17,6 +17,7 @@ Usage
  BlogID => xxxxxxxxx
 
 After edit files "bin/mblogger-config" and "bin/mblogger-run.rb",
+$ chmod +x mblogger-run.rb
 
 [help]
 $ ./mblogger-run.rb -h
@@ -51,7 +52,7 @@ New Title
 --content
 test post.
 second line.
-link line <a href='http://github.com'>git.com</a> ... 
+link line <a href='http://github.com'>github.com</a> ... 
 
 today's bgm
 <blockquote>
