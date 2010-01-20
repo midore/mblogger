@@ -7,7 +7,7 @@ New Title
 --content
 test post.
 second line.
-link line <a href='http://github.com'>git.com</a> ... 
+link line <a href='http://github.com'>github.com</a> ... 
 
 today's bgm
 <blockquote>
