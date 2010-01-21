@@ -9,7 +9,7 @@ module Mblogger
       x, y = arg
       if x =~ /^-h$|^-help$/
         helpmsg
-        return true
+        return 'help'
       end
       return err if x == '-blg-get' and y.nil?
       return err = 'err1' if y.nil?
