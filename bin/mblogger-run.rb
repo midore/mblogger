@@ -21,7 +21,7 @@ require 'mblogger/mblogger-arg'
 err = Mblogger::Checkconf.new().check_arg(arg)
 
 # help
-exit if err == true
+exit if err == 'help'
 
 # error
 (print "#{err}\n"; exit) unless err.nil?
