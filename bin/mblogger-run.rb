@@ -27,14 +27,12 @@ exit if err == true
 (print "#{err}\n"; exit) unless err.nil?
 
 # start
-# conf = File.join(bin, 'mblogger-config')
-conf = File.join(bin, 'x-conf')
+conf = File.join(bin, 'mblogger-config')
 load conf, wrap=true
 
 # if not use gem of ruby 1.9.1, 
 # path/to/your/directory/gdata-1.1.1 
-#require 'gdata-1.1.1/lib/gdata.rb'
-require '/Volumes/moon/days/current/git-repo/gdata/gdata-1.1.1/lib/gdata.rb'
+# require 'gdata-1.1.1/lib/gdata.rb'
 
 # mblogger lib
 require 'mblogger'
