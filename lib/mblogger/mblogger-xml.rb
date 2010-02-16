@@ -159,7 +159,7 @@ module Mblogger
     def tag_a(line)
       return nil if line =~ /<[a|\/a]>/
       all = /<a\shref=["'](.*?)["']>(.*?)<\/a>/.match(line)
-      http = /http:\/\//.match(all[1]) if all
+      http = /http.?:\/\//.match(all[1]) if all
       (print "MISSED LINK TAG...#{line}\n"; raise) if (all[2].nil? or http.nil?) 
       @ep.add_element("a",{'href'=>all[1]}).add_text(all[2])
     end

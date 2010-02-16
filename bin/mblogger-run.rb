@@ -30,9 +30,19 @@ exit if err == 'help'
 conf = File.join(bin, 'mblogger-config')
 load conf, wrap=true
 
-# if not use gem of ruby 1.9.1, 
-# path/to/your/directory/gdata-1.1.1 
-# require 'gdata-1.1.1/lib/gdata.rb'
+# you need to edit require path
+# require 'gdata-1.1.1/lib/gdata.rb' # Edit this line, your gdata path. 
+
+=begin
+if see this error, 
+  ... gdata-1.1.1/lib/gdata.rb:21:in `require': no such file to load -- jcode (LoadError)
+
+ You need to edit line 21 and line 22 of file 'gdata-1.1.1/lib/gdata.rb'.
+ Because, ruby 1.9.1 not support jcode and $KCODE.
+ ...like this...
+ # require 'jcode' 
+ # $KCODE = 'UTF8'
+=end
 
 # mblogger lib
 require 'mblogger'
