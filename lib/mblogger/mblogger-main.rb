@@ -147,7 +147,9 @@ module Mblogger
         success_msg(str)
         return res_to_h(r)
       else
-        success_msg(str) if n == 200
+        return nil unless n == 200
+        success_msg(str)
+        res_to_h(r) if str == 'update'
       end
     end
 
