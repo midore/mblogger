@@ -179,6 +179,7 @@ module Mblogger
       h[:edit_id] = res_editid
       h[:published] = get_xstr('published')
       h[:updated] = get_xstr('updated')
+      h[:url] = get_link
       print_hash(h)
       return h unless h.empty?
     end
@@ -196,6 +197,14 @@ module Mblogger
     def get_xstr(str)
       return nil unless @xr.elements[str]
       @xr.elements[str].text
+    end
+
+    def get_link
+      link = ""
+      @xr.get_elements('link').select{|y|
+        link = y.attributes['href'] if y.attributes['rel'] == 'alternate'
+       }
+      return link
     end
 
     def range_t(t)
