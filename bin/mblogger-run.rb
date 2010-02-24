@@ -1,3 +1,4 @@
+#!/usr/bin/local/ruby19
 # coding: utf-8
 
 #------------------------------------------
@@ -18,13 +19,13 @@ arg.delete("")
 
 # argv check
 require 'mblogger/mblogger-arg'
-err = Mblogger::Checkconf.new().check_arg(arg)
+err, arg_h = Mblogger::CheckStart.new(arg).base
 
 # help
 exit if err == 'help'
 
 # error
-(print "#{err}\n"; exit) unless err.nil?
+(print "#{err}\n"; exit) if err
 
 # start
 conf = File.join(bin, 'mblogger-config')
@@ -46,6 +47,5 @@ if see this error,
 
 # mblogger lib
 require 'mblogger'
-x, y = arg
-Mblogger::Xblog.new(x, y).base
+Mblogger::Xblog.new(arg_h).base
 
