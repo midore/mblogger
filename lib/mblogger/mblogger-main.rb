@@ -2,26 +2,27 @@ module Mblogger
 
   class Xblog
 
-    def initialize(req, path)
-      @req = req
-      return @year_month = path if req == '-blg-get'
-      @t_head, @t_xdoc, @t_body = Xdoc.new(path).base
+    def initialize(h)
+      @path, @req = h.values[0], h.keys[0].to_s
+      return @year_month = @path if @req == 'blg-get'
+      @t_head, @t_xdoc, @t_body = Xdoc.new(@path).base
       return err_msg(4) if @t_head.nil? 
       @t_id = @t_head[:edit_id]
-      @t_body = nil unless req == '-blg-post'
+      @t_body = nil unless @req == 'blg-post'
     end
 
     def base
       print_t_head if @t_head 
       begin
         case @req
-        when '-blg-doc' then g_doc
-        when '-blg-get' then g_get
-        when '-blg-post' then g_post
-        when '-blg-up' then g_up
-        when '-blg-del' then g_del
+        when 'blg-doc' then g_doc
+        when 'blg-get' then g_get
+        when 'blg-post' then g_post
+        when 'blg-up' then g_up
+        when 'blg-del' then g_del
         end
-      rescue
+      rescue => err
+        print "#{err.message}\n"
       end
     end
 
@@ -166,11 +167,9 @@ module Mblogger
           "Authorization" => "GoogleLogin auth=#{token}",
           'Content-Type' => 'application/atom+xml'
         }
-        return a
-      rescue SocketError
-        print "Error: SocketError\n"
+      return a
       rescue => err
-        print "#{err.class} #{err.message}\n"
+        print "ERROR: #{err.class}\n"
       end
     end
 
@@ -211,9 +210,9 @@ module Mblogger
 
     def range_t(t)
       return nil unless t = set_time(t)
-      min = t.strftime("%Y-%m-01T00:00:00")
+      min = (Time.local(t.year, t.month) - 1).strftime("%Y-%m-%dT%H:%M:%S")
       t.month == 12 ? x = [t.year+1, 1] : x = [t.year, t.month+1]
-      max = (Time.local(x[0], x[1], 1) - 1).strftime("%Y-%m-%dT%H:%M:%S")
+      max = Time.local(x[0], x[1], 1).strftime("%Y-%m-%dT%H:%M:%S")
       print "\nRange: #{min} ~ #{max}\n"
       return @xurl + "?published-min=#{min}" + "&published-max=#{max}"
     end

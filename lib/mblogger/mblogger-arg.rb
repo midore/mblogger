@@ -1,53 +1,47 @@
 module Mblogger
 
-  class Checkconf
+  class CheckStart
 
-    def check_arg(arg)
-      err = nil
-      return err = 'lang' unless Encoding.default_external.name == 'UTF-8'
-      return err = 'err0' if arg.empty?
-      x, y = arg
-      if x =~ /^-h$|^-help$/
-        helpmsg
-        return 'help'
-      end
-      return err if x == '-blg-get' and y.nil?
-      return err = 'err1' if y.nil?
-      return err = 'err2' unless arg_key[x]
-      unless x == '-blg-get'
-        return err = 'err4' if File.directory?(y)
-        return err = 'err4' unless File.exist?(y)
-      else
-        return err = 'err3' unless y =~ /\d{4}\-\d{2}$/
-      end
-      return err
+    def initialize(arg)
+      @err = false
+      m, @h = '', Hash.new
+      arg.each{|x| m = /^-(.*)/.match(x) if /^-/.match(x); @h[m[1].to_sym] = x if m}
+    end
+
+    def base
+      return "Error: $LANG must be UTF-8" unless Encoding.default_external.name == 'UTF-8'
+      return help if (@h.has_key?(:h) or @h.has_key?(:help))
+      return check_arg
     end
 
     private
-    def arg_key
-      a = {
-        '-blg-get'=>'get entry',
-        '-blg-doc'=>'print xml',
-        '-blg-post'=>'post entry',
-        '-blg-up'=>'up entry',
-        '-blg-del'=>'delete entry',
-        '-h|-help'=>'this help'
+    def help
+      arg_keys.each{|k,v| print "#{k}: #{v}\n"}
+      return 'help'
+    end
+
+    def arg_keys
+      {
+        '-blg-get'=>'Get entry. Example: -blg-get 2010-01',
+        '-blg-doc'=>'Print text file to XML doc. Example: -blg-doc draft.txt',
+        '-blg-post'=>'Post entry.  Example: -blg-post draft.txt',
+        '-blg-up'=>'Update entry.  Example: -blg-up ../data/2010-01-01-xxx.txt',
+        '-blg-del'=>'Delete entry. Example: -blg-del ../data/2010-01-01-xxx.txt',
+        '-h'=>'this Help'
       }
     end
 
-    def helpmsg
-      arg_key.each{|k,v| print " #{k}: #{v}\n"}
-    end
-
-    def check_file(f)
-      return File.exist?(f)
-    end
-
-    def arrtoh(arg)
-      ak = arg_key
-      h, k = Hash.new, nil
-      arg.each{|x| k = x if ak[x]; h[k] = x if k}
-      return h
+    def check_arg
+      err_no_str, err_no_file = "No option", "Not exist file"
+      @h.keys.each{|k| return @err = err_no_str unless arg_keys["-#{k}"]}
+      k = @h.keys[0]
+      if k == :"blg-get"
+        (@h[:"blg-get"] == "-blg-get") ? @h[:"blg-get"] = Time.now().strftime("%Y-%m") : nil
+        return arg_keys['-blg-get'] unless /\d{4}\-\d{2}$/.match(@h[:"blg-get"])
+      else
+        return err_no_file unless File.exist?(@h[k]) and File.file?(@h[k])
+      end
+      return [@err, @h]
     end
 
   end
