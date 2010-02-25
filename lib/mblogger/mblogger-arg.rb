@@ -25,8 +25,8 @@ module Mblogger
         '-blg-get'=>'Get entry. Example: -blg-get 2010-01',
         '-blg-doc'=>'Print text file to XML doc. Example: -blg-doc draft.txt',
         '-blg-post'=>'Post entry.  Example: -blg-post draft.txt',
-        '-blg-up'=>'Update entry.  Example: -blg-up ../data/2010-01-01-xxx.txt',
-        '-blg-del'=>'Delete entry. Example: -blg-del ../data/2010-01-01-xxx.txt',
+        '-blg-up'=>'Update entry.  Example: -blg-up /path/2010-01-01-xxx.txt',
+        '-blg-del'=>'Delete entry. Example: -blg-del /path/2010-01-01-xxx.txt',
         '-h'=>'this Help'
       }
     end
