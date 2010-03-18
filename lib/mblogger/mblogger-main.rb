@@ -168,6 +168,8 @@ module Mblogger
           'Content-Type' => 'application/atom+xml'
         }
       return a
+      rescue GData::Client::AuthorizationError
+        print "ERROR: Blogger Login Error. LOOK! bin/mblogger-config\n"
       rescue => err
         print "ERROR: #{err.class}\n"
       end
