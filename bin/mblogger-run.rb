@@ -1,38 +1,40 @@
-#!/usr/bin/local/ruby19
+#!/path/to/ruby19
 # coding: utf-8
-
 #------------------------------------------
 # mblogger-run.rb
-# 
+# last: 2010-07-01 
 # gdata
 # http://code.google.com/p/gdata-ruby-util/downloads/list
 #------------------------------------------
 
-dir = File.dirname(File.dirname(File.expand_path($PROGRAM_NAME)))
-bin = File.join(dir, 'bin')
-lib = File.join(dir, 'lib')
-$LOAD_PATH.push(bin, lib)
-$LOAD_PATH.delete(".")
+module Mblogger
+  class Start
+    def self.run
+      dir = File.dirname(File.dirname(File.expand_path($PROGRAM_NAME)))
+      bin = File.join(dir, 'bin')
+      lib = File.join(dir, 'lib')
+      $LOAD_PATH.push(bin, lib)
+      $LOAD_PATH.delete(".")
 
-arg = ARGV
-arg.delete("")
-
-# argv check
-require 'mblogger/mblogger-arg'
-err, arg_h = Mblogger::CheckStart.new(arg).base
-
-# help
-exit if err == 'help'
-
-# error
-(print "#{err}\n"; exit) if err
-
-# start
-conf = File.join(bin, 'mblogger-config')
-load conf, wrap=true
-
-# you need to edit require path
-# require 'gdata-1.1.1/lib/gdata.rb' # Edit this line, your gdata path. 
+      ARGV.empty? ? exit : ARGV.delete("")
+      require 'mblogger/mblogger-arg'
+      err, arg_h = CheckStart.new(ARGV).base
+      if err
+        err == 'help' ? exit : (print "#{err}\n"; exit)
+      end
+      # start
+      # Your Path
+      conf = '/path/to/your/mblogger-config'
+      load conf, wrap=true
+      # Your Path
+      require 'path/to/gdata-1.1.1/lib/gdata.rb'
+      # mblogger lib
+      require 'mblogger'
+      Xblog.new(arg_h).base
+    end
+  end
+end
+Mblogger::Start.run
 
 =begin
 if see this error, 
@@ -44,8 +46,4 @@ if see this error,
  # require 'jcode' 
  # $KCODE = 'UTF8'
 =end
-
-# mblogger lib
-require 'mblogger'
-Mblogger::Xblog.new(arg_h).base
 
