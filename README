@@ -16,7 +16,7 @@ Usage
  BlogURL=> http://xxxxxxx.blogspot.com/
  BlogID => xxxxxxxxx
 
-After edit files "bin/mblogger-config" and "bin/mblogger-run.rb",
+After edit files "bin/mblogger-config" and "bin/mblogger-run.rb"
 $ chmod +x mblogger-run.rb
 
 [help]
