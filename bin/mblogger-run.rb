@@ -1,28 +1,33 @@
 #!/path/to/ruby19
 # coding: utf-8
+#
 #------------------------------------------
 # mblogger-run.rb
-# last: 2010-07-01 
 # gdata
 # http://code.google.com/p/gdata-ruby-util/downloads/list
 #------------------------------------------
 
-module Mblogger
-  class Start
-    def self.run
-      dir = File.dirname(File.dirname(File.expand_path($PROGRAM_NAME)))
-      bin = File.join(dir, 'bin')
-      lib = File.join(dir, 'lib')
-      $LOAD_PATH.push(bin, lib)
-      $LOAD_PATH.delete(".")
+(print "Error: Only Ruby 1.9\n"; exit) if RUBY_VERSION < "1.9"
+(print "Error: LANG"; exit) unless Encoding.default_external.name == 'UTF-8'
 
+module Mblogger
+
+  class Start
+    def own_dir
+      dir = File.dirname(File.dirname(File.expand_path($PROGRAM_NAME)))
+      lib = File.join(dir, 'lib')
+      $LOAD_PATH.push(lib)
+      $LOAD_PATH.delete(".")
+    end
+
+    def run
+      own_dir    
       ARGV.empty? ? exit : ARGV.delete("")
       require 'mblogger/mblogger-arg'
       err, arg_h = CheckStart.new(ARGV).base
       if err
         err == 'help' ? exit : (print "#{err}\n"; exit)
       end
-      # start
       # Your Path
       conf = '/path/to/your/mblogger-config'
       load conf, wrap=true
@@ -32,9 +37,14 @@ module Mblogger
       require 'mblogger'
       Xblog.new(arg_h).base
     end
+
+    private :own_dir
+
   end
+
 end
-Mblogger::Start.run
+
+Mblogger::Start.new.run
 
 =begin
 if see this error, 
