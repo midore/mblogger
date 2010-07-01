@@ -29,16 +29,16 @@ $ ./mblogger-run.rb -blg-get
 $ ./mblogger-run.rb -blg-get 2010-01
 
 [print xml]
-$ ./mblogger-run.rb -blg-doc ~/draft.txt
+$ ./mblogger-run.rb -blg-doc draft.txt
 
 [post entry]
-$ ./mblogger-run.rb -blg-post ~/draft.txt
+$ ./mblogger-run.rb -blg-post draft.txt
 
 [update entry]
-$ ./mblogger-run.rb -blg-up 2010-01-01.txt
+$ ./mblogger-run.rb -blg-up /your-data-directory/2010-01-01.txt
 
 [delete entry]
-$ ./mblogger-run.rb -blg-del 2010-01-01.txt
+$ ./mblogger-run.rb -blg-del /your-data-directory/2010-01-01.txt
 
 
 [Text]
@@ -80,6 +80,6 @@ $ source .bashrc
 $ blogger -h
 
 Licence
- Copyright (C) 2009 midore
+ Copyright (C) 2009 2010 midore
  mblogger is licensed under the GPLv2
 
