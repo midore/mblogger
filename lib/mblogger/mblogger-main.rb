@@ -82,7 +82,10 @@ module Mblogger
     include $MBLOGGER
     def initialize(eid=nil)
       @eid = eid
-      @xurl = "http://www.blogger.com/feeds/#{xid}/posts/default"
+      # See
+      # Blogger Developers Network: Clarifying recent changes to Blogger’s feed access
+      # http://code.blogger.com/2011/06/clarifying-recent-changes-to-bloggers.html
+      @xurl = "https://www.blogger.com/feeds/#{xid}/posts/default"
     end
 
     def xget(x)
@@ -100,6 +103,7 @@ module Mblogger
       str = "Error: path to data directory. edit bin/mblogger-conf\n"
       return print str unless d = dir_check
       rh = request_post(data)
+      return nil unless rh
       rh[:dir] = d
       return rh
     end
