@@ -1,5 +1,4 @@
 module Mblogger
-
   module Config
 
     def data_dir
@@ -23,7 +22,6 @@ module Mblogger
     end
 
   end
-
 end
 
 $MBLOGGER = Mblogger::Config
