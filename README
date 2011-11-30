@@ -2,44 +2,34 @@ Mblogger
  Blogger User's tool
 
 Dependency
- Ruby 1.9.1
- gdata 1.1.1
- http://code.google.com/p/gdata-ruby-util/downloads/list
+ Ruby 1.9
+ gdata => http://code.google.com/p/gdata-ruby-util/downloads/list
 
 Usage
- # get your BlogID
- $ cd mblogger/bin
- $ vi get-blogid.rb # profileid = 'your ProfileID'
- $ ruby191 get-blogid.rb
- # =>
- BlogTitle=> your blog title
- BlogURL=> http://xxxxxxx.blogspot.com/
- BlogID => xxxxxxxxx
-
-After edit files "mblogger-config" and "bin/mblogger-run.rb"
-$ chmod +x mblogger-run.rb
+$ vi mblogger/mblogger-config
+$ vi mblogger/bin/mblogger-run.rb
 
 [help]
-$ ./mblogger-run.rb -h
+$ cd mblogger/bin
+$ ruby19 mblogger-run.rb --h
 
 [get entry in current month]
-$ ./mblogger-run.rb -blg-get
+$ ruby19 mblogger-run.rb --get
 
 [get entry]
-$ ./mblogger-run.rb -blg-get 2010-01
+$ ruby19 mblogger-run.rb --get 2010-01
 
 [print xml]
-$ ./mblogger-run.rb -blg-doc draft.txt
+$ ruby19 mblogger-run.rb --doc draft.txt
 
 [post entry]
-$ ./mblogger-run.rb -blg-post draft.txt
+$ ruby19 mblogger-run.rb --post draft.txt
 
 [update entry]
-$ ./mblogger-run.rb -blg-up /your-data-directory/2010-01-01.txt
+$ ruby19 mblogger-run.rb --update /your-data-directory/2010-01-01.txt
 
 [delete entry]
-$ ./mblogger-run.rb -blg-del /your-data-directory/2010-01-01.txt
-
+$ ruby19 mblogger-run.rb --del 1234566789 # edit_id
 
 [Text]
 $ cat draft.txt
@@ -70,16 +60,19 @@ end
 </pre>
 last line.
 
-
 [Alias]
+$ vi mblogger/bin/mblogger-run.rb
+ # add
+ #!/path/to/your/ruby19
+$ chmod +x mblogger/bin/mblogger-run.rb
 $ vi .bashrc
-# add 
+ # add
  alias 'blogger'='/path/to/mblogger/bin/mblogger-run.rb'
 
 $ source .bashrc
-$ blogger -h
+$ blogger --h
 
 Licence
- Copyright (C) 2009 2010 midore
+ Copyright (C) 2009 - 2011 midore
  mblogger is licensed under the GPLv2
 
