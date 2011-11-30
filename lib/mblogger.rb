@@ -1,4 +1,3 @@
-require 'uri'
 require 'time'
 require 'rexml/document'
 require 'mblogger/mblogger-xml'
