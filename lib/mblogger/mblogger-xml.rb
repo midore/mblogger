@@ -1,21 +1,12 @@
 module Mblogger
-
   class Mbxml
-
     def to_xml(h, content)
-      begin
-        @content, @h = content, h
-        set_doc
-        return nil unless @xentry
-        set_basic
-        set_div
-        cleanup
-        return @xentry
-      rescue NoMethodError
-        print "Error: XML Parse\n"
-      rescue RuntimeError
-        print "Error: Tag Issue\n"
-      end
+      @content, @h = content, h
+      set_doc
+      return nil unless @xentry
+      set_basic
+      set_div
+      return @xentry
     end
 
     private
@@ -24,7 +15,7 @@ module Mblogger
     end
 
     def set_doc
-      return nil unless xmldoc.valid_encoding?
+      # return nil unless xmldoc.valid_encoding?
       @doc = REXML::Document.new(xmldoc)
       @xentry = @doc.root if @doc
     end
@@ -43,11 +34,9 @@ module Mblogger
       return nil unless @h[:date]
       begin
         d = Time.parse(@h[:date])
-      rescue 
+      rescue
         return nil
       end
-      # around 2009/07. blogger server ignore future date.
-      return nil if d > Time.now
       @xentry.add_element("published").add_text(d.iso8601.to_s)
     end
 
@@ -67,19 +56,11 @@ module Mblogger
     end
 
     def set_key
-      a = ["pre", "blockquote"]
+      a = ["more", "pre", "blockquote"]
       @on, @off  = Hash.new, Hash.new
       a.each{|x| @on["<#{x}>"] = "#{x}"; @off["</#{x}>"] = true}
       @line_p, @line_x, @tag = [], "", nil
       @n = 0
-    end
-
-    def cleanup
-      need = [:@xentry]
-      self.instance_variables.each{|i|
-        next if need.find_index(i)
-        self.instance_variable_set(i, nil)
-      }
     end
 
     def set_div
@@ -106,10 +87,16 @@ module Mblogger
       }
     end
 
+    #2011-11-23
+    def tag_more
+      REXML::Comment.new("more", @div)
+    end
+
     def tag_x
       case @tag
       when "pre" then tag_pre
       when "blockquote" then tag_block
+      when "more" then tag_more
       end
     end
 
@@ -117,7 +104,7 @@ module Mblogger
       e = @div.add_element(@tag).add_element("code")
       e.add_text(@line_x)
     end
- 
+
     def tag_block
       e = @div.add_element(@tag).add_element("p")
       @line_x.strip.each_line{|x|
@@ -157,12 +144,11 @@ module Mblogger
     end
 
     def tag_a(line)
-      return nil if line =~ /<[a|\/a]>/
+      return nil unless /<a|\/a>/.match(line) # if line =~ /<[a|\/a]>/
       all = /<a\shref=["'](.*?)["']>(.*?)<\/a>/.match(line)
       http = /http.?:\/\//.match(all[1]) if all
-      (print "MISSED LINK TAG...#{line}\n"; raise) if (all[2].nil? or http.nil?) 
-      # uri escape
-      u = URI.escape(all[1])
+      (print "MISSED LINK TAG...#{line}\n"; raise) if (all[2].nil? or http.nil?)
+      u = all[1]
       a = @ep.add_element("a")
       a.add_attribute("href", u)
       a.add_text(all[2])
@@ -186,9 +172,138 @@ module Mblogger
     def xmldoc
         "<?xml version='1.0' encoding='UTF-8'?><entry xmlns='http://www.w3.org/2005/Atom'><title type='text'/><content type='xhtml'><div xmlns='http://www.w3.org/1999/xhtml'></div></content><app:control xmlns:app='http://www.w3.org/2007/app'><app:draft>yes</app:draft></app:control></entry>"
     end
-
-    # end of module "Mbxml" 
   end
-  # end of moudle "Mblogger"
+
+  class ResultView
+    def initialize
+      @res, @str, @xr = nil, nil, nil
+    end
+
+    def base(res, str)
+      @res, @str = res, str
+      @xr = @res.to_xml.root
+      result_view
+    end
+
+    private
+    def result_view
+      print "-"*5,"\n"
+      # @xr.elements.each{|x| p x}
+      case @str
+      when 'getentry'
+        if @xr.name == "entry"
+          view_getentry(Hash.new)
+        end
+      when 'get'
+        return print "Not found entry.\n" unless @xr.elements['entry']
+        view_getfeeds
+      when 'getinfo'
+        view_getinfo
+      when /postentry/
+        return view_postentry
+      end
+    end
+
+    def view_getfeeds
+      @xr.get_elements('entry').each{|x|
+        h, @xr = {}, x
+        view_getentry(h)
+      }
+    end
+
+    def view_getentry(h)
+      h[:control] = get_xstr('app:control/app:draft')
+      h[:edit_id] = get_editid
+      h[:url] = get_link
+      [:published, :updated, :title].each{|s| h[s] = get_xstr(s.to_s)}
+      h[:category] = get_category
+      h[:summary] = get_xstr("summary")
+      h[:content] = get_xstr("content")
+      print_hash(h)
+    end
+
+    def view_postentry
+      return nil unless @xr.name == "entry"
+      h = Hash.new
+      h[:edit_id] = get_editid
+      [:published, :updated].each{|s| h[s] = get_xstr(s.to_s)}
+      h[:url] = get_link if get_link
+      print_hash(h)
+      return h unless h.empty?
+    end
+
+    def print_hash(h)
+      return nil unless h
+      h.each{|k,v|
+        next if v.nil?
+        print k.to_s.upcase, ": ", v, "\n"
+      }
+      print "\n"
+    end
+
+    def get_xstr(str)
+      return nil unless @xr.elements[str]
+      @xr.elements[str].text
+    end
+
+    def get_link
+      link = ""
+      @xr.get_elements('link').select{|y|
+        link = y.attributes['href'] if y.attributes['rel'] == 'alternate'
+       }
+      return nil if link.empty?
+      return link
+    end
+
+    def get_category
+      # <category term='Blogger' scheme='http://www.blogger.com/atom/ns#'/>
+      cate = []
+      @xr.get_elements('category').select{|y| cate.push(y.attributes['term'])}
+      return nil if cate.empty?
+      return cate.join(',').to_s
+    end
+
+    def get_editid
+      edit = @xr.elements["link[@rel='edit']"].attributes['href']
+      edit.to_s.gsub(/.*?default\//,'')
+    end
+
+    def xinfo_category
+      @xr.get_elements('entry/category').each{|y| print "[", y.attributes['term'], "]\s"}
+      print "\n"
+    end
+
+    def xinfo_link(str)
+       @xr.get_elements("#{str}").each{|y|
+        m = y.attributes['rel'].to_s.match(/\#(.*?)$/)
+        m ? s = m[1] : s = y.attributes['rel']
+        print "#{s} => ", y.attributes['href'], "\n"
+      }
+    end
+
+    def xinfo_blogid
+      blogid = nil
+      @xr.get_elements('entry/link').select{|y|
+        blogid = /(\d.*?)\//.match(y.attributes['href']) if y.attributes['rel'].to_s.match(/post/)
+      }
+      return blogid[1] if blogid
+    end
+
+    def xinfo_title
+      return @xr.elements["title"].text
+    end
+
+    def view_getinfo
+      print "# BlogTitle:\n #{xinfo_title}\n"
+      print "# Blog ID:\n #{xinfo_blogid}\n"
+      print "# Category:\n"
+      xinfo_category
+      print "# Link:\n"
+      xinfo_link("link")
+      print "# Entry Link:\n"
+      xinfo_link("entry/link")
+      print "-"*5 ,"\n"
+    end
+  end
 end
 

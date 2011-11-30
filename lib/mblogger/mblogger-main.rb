@@ -1,120 +1,97 @@
 module Mblogger
-
   class Xblog
-
     def initialize(h)
-      @path, @req = h.values[0], h.keys[0].to_s
-      return @year_month = @path if @req == 'blg-get'
-      @t_head, @t_xdoc, @t_body = Xdoc.new(@path).base
-      return err_msg(4) if @t_head.nil? 
-      @t_id = @t_head[:edit_id]
-      @t_body = nil unless @req == 'blg-post'
+      @req, @opt = h.keys[0].to_s, h.values[0]
     end
 
     def base
-      print_t_head if @t_head 
       begin
-        case @req
-        when 'blg-doc' then g_doc
-        when 'blg-get' then g_get
-        when 'blg-post' then g_post
-        when 'blg-up' then g_up
-        when 'blg-del' then g_del
-        end
+        blogger_api
+      rescue GData::Client::AuthorizationError
+        print "ERROR: Blogger Login Error. LOOK! /path/to/xblogger-config\n"
+        exit
+      rescue GData::Client::UnknownError
+        print "ERROR: Entry not found\n"
+        exit
       rescue => err
-        print "#{err.message}\n"
+        print "ERROR: #{err.class}\n"
+        exit
       end
     end
 
     private
-    def err_msg(n)
-      case n
-      when 1 then print "Error1: posted, already.\n"
-      when 2 then print "Error2: need to post, before update.\n"
-      when 3 then print "Error3: edit_id is empty.\n"
-      when 4 then print "Error4: text file format.\n"
+    def blogger_api
+      # {:getinfo=>"--getinfo"} {:get=>"--get"} {:getentry=>"123"}
+      case @req
+      when /get/
+        GetRequest.new(@req, @opt)
+      when /^doc$/
+        ReadText.new(@opt).to_str
+      when /^post$/
+        x = get_obj_text
+        exit unless gets_msg("\nPost Entry\n")
+        rh = PostRequest.new(x).base
+      when /^update$/
+        x = get_obj_text
+        exit unless gets_msg("\nUpdate Entry\n")
+        UpdateRequest.new(x).base
+      when /^del$/
+        GetRequest.new("getentry", @opt)
+        exit unless gets_msg("\nDelete Entry\n")
+        DeleteRequest.new(@opt).base
       end
     end
 
-    def g_doc
-      print @t_xdoc, "\n"
+    def get_obj_text
+      x = ReadText.new(@opt)
+      x.to_s
+      return x
     end
 
-    def g_get
-      Start.new().xget(@year_month)
+    def gets_msg(str)
+      print "#{str}", "OK? [y/n]\n"
+      ans = $stdin.gets.chomp
+      exit if /^n$/.match(ans)
+      exit if ans.empty?
+      return true if ans == 'y'
     end
-
-    def g_post
-      return err_msg(1) unless @t_id.nil?
-      return nil unless @t_xdoc
-      rh = Start.new().xpost(@t_xdoc)
-      return nil unless rh
-      h = @t_head.merge(rh)
-      h[:content] = @t_body
-      SaveText.new(h).base
-    end
-
-    def g_up
-      return err_msg(2) if @t_id.nil?
-      return nil if @t_xdoc.nil?
-      Start.new(@t_id).xup(@t_xdoc)
-    end
-
-    def g_del
-      return err_msg(3) if @t_id.nil?
-      Start.new(@t_id).xdel
-    end
-
-    def print_t_head
-      print_hash(@t_head)
-      print "-"*5, "\n"
-    end
-
-    def print_hash(h)
-      print "\n"
-      h.each{|k,v| print k.upcase, ": ", v, "\n" if v}
-    end
- 
   end
 
-  class Start
-
+  class RequestBase
     include $MBLOGGER
-    def initialize(eid=nil)
-      @eid = eid
-      # See
-      # Blogger Developers Network: Clarifying recent changes to Blogger’s feed access
-      # http://code.blogger.com/2011/06/clarifying-recent-changes-to-bloggers.html
-      @xurl = "https://www.blogger.com/feeds/#{xid}/posts/default"
+    def initialize
+      exit unless check
+      exit unless dir_check
     end
 
-    def xget(x)
-      return nil unless u = range_t(x)
-      request_get(u)
+    def posturl
+      "https://www.blogger.com/feeds/#{xid}/posts/default"
     end
 
-    def xdel
-      print "Edit_id: #{@eid}\n"
-      u = @xurl + "/" + @eid
-      request_del(u)
+    def loginauth
+      a = GData::Client::Blogger.new
+      a.source = xname
+      token = a.clientlogin(ac, pw)
+      a.headers = {
+        "Authorization" => "GoogleLogin auth=#{token}",
+        'Content-Type' => 'application/atom+xml'
+      }
+      return a
     end
 
-    def xpost(data)
-      str = "Error: path to data directory. edit bin/mblogger-conf\n"
-      return print str unless d = dir_check
-      rh = request_post(data)
-      return nil unless rh
-      rh[:dir] = d
-      return rh
+    def print_status_code(res, no)
+      print "Status Code: ", res.status_code, "\n"
+      exit unless res.status_code == no
     end
 
-    def xup(data)
-      print "Edit_id: #{@eid}\n"
-      u = @xurl + "/" + @eid
-      request_up(u, data)
+    def check
+      str = "Error: Not Found data directory.\n"
+      return print str unless dir_check
+      return nil unless pw
+      return nil unless ac
+      return true
     end
 
-    private
     def dir_check
       d = data_dir
       return false unless File.exist?(d)
@@ -122,172 +99,112 @@ module Mblogger
       return d
     end
 
-    def request_get(u)
-      r = clbase.get(u)
-      res_to_getreq(r)
-      print "\n\n"
-      code_msg(r, 'get')
-    end
-
-    def request_del(u)
-      r = clbase.delete(u)
-      code_msg(r, 'delete')
-    end
-
-    def request_post(data)
-      r = clbase.post(@xurl, data.to_s)
-      code_msg(r, 'post')
-    end
-
-    def request_up(u, data)
-      r = clbase.put(u, data.to_s)
-      code_msg(r, 'update')
-    end
-
-    def code_msg(r, str)
-      n = r.status_code
-      print "StatusCode: #{n}\n"
-      if str == 'post'
-        return nil unless n == 201
-        success_msg(str)
-        return res_to_h(r)
-      else
-        return nil unless n == 200
-        success_msg(str)
-        res_to_h(r) if str == 'update'
+    def err_msg(n)
+      case n
+      when 1 then print "Error 1: this entry was posted, already.\n"
+      when 2 then print "Error 2: need to post entry, before update.\n"
+      when 3 then print "Error 3: edit_id is empty.\n"
+      when 4 then print "Error 4: some error in text file.\n"
       end
     end
-
-    def success_msg(str)
-      print "Success: request #{str}.\n\n"
-    end
-
-    def clbase
-      begin
-        a = GData::Client::Blogger.new
-        a.source = xname
-        token = a.clientlogin(ac, pw)
-        a.headers = {
-          "Authorization" => "GoogleLogin auth=#{token}",
-          'Content-Type' => 'application/atom+xml'
-        }
-      return a
-      rescue GData::Client::AuthorizationError
-        print "ERROR: Blogger Login Error. LOOK! bin/mblogger-config\n"
-      rescue => err
-        print "ERROR: #{err.class}\n"
-      end
-    end
-
-    def res_to_h(res)
-      return nil unless res.to_xml.root.name == "entry"
-      h = Hash.new
-      @xr = res.to_xml.root
-      h[:edit_id] = res_editid
-      h[:published] = get_xstr('published')
-      h[:updated] = get_xstr('updated')
-      h[:url] = get_link
-      print_hash(h)
-      return h unless h.empty?
-    end
-
-    def print_hash(h)
-      print "\n"
-      h.each{|k,v| print k.upcase, ": ", v, "\n" if v}
-    end
- 
-    def res_editid
-      edit = @xr.elements["link[@rel='edit']"].attributes['href']
-      edit.to_s.gsub(/.*?default\//,'')
-    end
-
-    def get_xstr(str)
-      return nil unless @xr.elements[str]
-      @xr.elements[str].text
-    end
-
-    def get_link
-      link = ""
-      @xr.get_elements('link').select{|y|
-        link = y.attributes['href'] if y.attributes['rel'] == 'alternate'
-       }
-      return link
-    end
-
-    def range_t(t)
-      return nil unless t = set_time(t)
-      min = (Time.local(t.year, t.month) - 1).strftime("%Y-%m-%dT%H:%M:%S")
-      t.month == 12 ? x = [t.year+1, 1] : x = [t.year, t.month+1]
-      max = Time.local(x[0], x[1], 1).strftime("%Y-%m-%dT%H:%M:%S")
-      print "\nRange: #{min} ~ #{max}\n"
-      return @xurl + "?published-min=#{min}" + "&published-max=#{max}"
-    end
-
-    def set_time(t)
-      unless t.nil?
-        m = /(\d{4}).(\d{2})/.match(t)
-        t = m[1] + "/" + m[2] if m
-      else
-        t = Time.now.strftime("%Y/%m")
-      end
-      begin
-        t = Time.parse(t)
-      rescue ArgumentError
-        return print "Error: Time parse error. example: 2010-01.\n"
-      end
-    end
-
-    def res_to_getreq(r)
-      r.to_xml.elements.each('entry'){|x|
-        h, @xr = {}, x
-        link = ''
-        h[:title] = get_xstr('title')
-        h[:edit_id] = res_editid
-        h[:published] = get_xstr('published')
-        h[:updated] = get_xstr('updated')
-        h[:control] = get_xstr('app:control/app:draft')
-        x.get_elements('link').select{|y| link = y.attributes['href'] if y.attributes['rel'] == 'alternate' }
-        h[:url] = link
-        print "-"*5, "\n"
-        print_hash(h)
-      }
-    end
-
   end
 
-  class Xdoc
-
-    def initialize(path)
-      ary = IO.readlines(path)
-      @mark = ary.find_index("--content\n")
-      return check(nil) unless @mark
-      content_h = ary[@mark+1..ary.size]
-      content_s = content_h.join().strip
-      return check(nil) if content_s.empty?
-      @meta, @content = to_meta(ary), content_s
-      @xdoc = to_xml(@meta, content_h) if @meta 
+  class PostRequest < RequestBase
+    def initialize(x)
+      @x = x
+      @view = ResultView.new
     end
 
     def base
-      return nil if (@meta.nil? or @xdoc.nil?)
-      return [@meta, @xdoc, @content]
+      return err_msg(1) if @x.h[:edit_id]
+      print "-"*5, " POST REQUEST \n"
+      print @x.to_xml
+      res = loginauth.post(posturl, @x.to_xml)
+      print_status_code(res, 201)
+      rh = @view.base(res, "postentry")
+      return nil unless rh
+      save_file(rh)
+    end
+
+    def save_file(rh)
+      h = @x.h.merge(rh)
+      h[:content] = @x.content
+      h[:dir] = data_dir
+      SaveText.new(h).base
+    end
+  end
+
+  class UpdateRequest < RequestBase
+    def initialize(x)
+      @xml = x.to_xml
+      @eid = x.h[:edit_id]
+      @url = posturl + "/" +  @eid if @eid
+    end
+
+    def base
+      return err_msg(2) unless @eid
+      print "-"*5, " PUT REQUEST \n"
+      res = loginauth.put(@url, @xml)
+      print_status_code(res, 200)
+    end
+  end
+
+  class DeleteRequest < RequestBase
+    def initialize(eid)
+      @eid = eid
+      @url = posturl + "/" + @eid if @eid
+    end
+
+    def base
+      return err_msg(3) unless @eid
+      print "-"*5, " Delete REQUEST \n"
+      res = loginauth.delete(@url)
+      print_status_code(res, 200)
+    end
+  end
+
+  class ReadText
+    attr_reader :content, :h
+    def initialize(filepath)
+      exit unless File.exist?(filepath)
+      @ary = IO.readlines(filepath)
+      @h = to_hash
+    end
+
+    def to_xml
+      Mbxml.new().to_xml(@h, @con)
+    end
+    def to_s
+      print "Title: #{@h[:title]}\n"
+      print "Category: #{@h[:category]}\nControl: #{@h[:control]}\n"
+    end
+
+    def to_str
+      to_s
+      print "\n", to_xml, "\n"
     end
 
     private
-    def to_xml(h, arr)
-      Mbxml.new().to_xml(h, arr) 
-    end
-
-    def to_meta(ary)
+    def to_hash
+      mark = @ary.find_index("--content\n")
       h, k = need_key, nil
-      ary.each_with_index{|x,y|
-        break if @mark == y
+      @ary.each_with_index{|x,y|
+        break if mark == y
         next if x.strip.empty?
         m = /^--(.*?)\n$/.match(x)
-        m ? k = m[1].to_sym : ( h[k] = x.strip if h.key?(k) )
+        m ? k = m[1].to_sym : (h[k] = x.strip if h.key?(k))
       }
+      @con = @ary[mark+1..@ary.size]
+      @content = @ary[mark+1..@ary.size].join().strip
       return nil unless check(h)
       return h
+    end
+
+    def need_key
+      {
+        :edit_id=>nil, :published=>nil, :updated=>nil,
+        :date=>nil, :control=>nil, :category=>nil, :title=>nil
+      }
     end
 
     def check(h)
@@ -297,29 +214,68 @@ module Mblogger
       return print "Error: control\n" unless h[:control]
       return true
     end
+  end
 
-    def need_key
-      h = Hash.new
-      a = [:edit_id, :published, :updated, :date, :control, :category, :title]
-      a.each{|s| h[s.to_sym] = nil}
-      return h
+  class GetRequest < RequestBase
+    def initialize(req, opt)
+      @req = req
+      @opt = @eid = opt
+      @baseurl = "https://www.blogger.com/feeds/default/blogs"
+      @feedurl = "https://www.blogger.com/feeds/#{xid}/posts/summary"
+      @view = ResultView.new
+      base
     end
 
+    private
+    def base
+      print "-"*5, " #{@req.upcase} REQUEST \n"
+      case @req
+      when "getinfo"
+        res = loginauth.get(@baseurl)
+      when "get"
+        res = loginauth.get(set_url)
+      when "getentry"
+        return nil if @eid.match(/\D/)
+        url = posturl + "/" +  @eid
+        res = loginauth.get(url)
+      else
+        exit
+      end
+      print_status_code(res, 200)
+      @view.base(res, @req)
+    end
+
+    def set_url
+      @opt = Time.now.strftime("%Y-%m") if @opt == "--get"
+      @opt.match(/^\d{4}.\d{2}$/) ? opt = set_time : opt = set_category
+      return @feedurl + opt
+    end
+
+    def set_time
+      t = Time.parse(@opt.gsub("-","/"))
+      min = t.strftime("%Y-%m-%dT%H:%M:%S")
+      t.month == 12 ? x = [t.year+1, 1] : x = [t.year, t.month+1]
+      max = Time.local(x[0], x[1], 1).strftime("%Y-%m-%dT%H:%M:%S")
+      return "?published-min=#{min}&published-max=#{max}"
+    end
+
+    def set_category
+      return "?category=#{@opt.gsub(",","&amp;")}"
+    end
   end
 
   class SaveText
-
     def initialize(h)
+      return nil unless h[:dir]
       @h = h
-      @pubd = h[:published]
-      @dir = h[:dir]
-      @str = String.new.encode("UTF-8")
+      @dir, @pubd = h[:dir], h[:published]
+      @h.delete(:dir)
     end
 
     def base
       path, data = getpath, getdata
       if File.exist?(path)
-        return print "\nError: Same name file is exist.\nFile: #{path}\n" 
+        return print "\nError: Same file exist.\nFile: #{path}\n"
       end
       File.open(path, 'w:utf-8'){|f| f.print data}
       print "Saved: #{path}\n"
@@ -327,24 +283,24 @@ module Mblogger
 
     private
     def getdata
+      str = String.new
       @h[:date] ||= Time.parse(@pubd).strftime("%Y/%m/%d %a %p %H:%M:%S")
-      @h.delete(:dir)
-      @h.each{|k,v| @str << "--#{k}\n#{v}\n"}
-      return @str
+      a = [:edit_id, :published, :updated, :date, :control, :category, :title, :url]
+      a.each{|k|
+        next if @h[k].nil?
+        str << "--#{k}\n#{@h[k]}\n"
+      }
+      str << "--content\n#{@h[:content]}\n"
+      return str
     end
 
     def getpath
+      return nil unless @dir
       subd = File.join(@dir, Time.parse(@pubd).strftime("%Y-%m"))
       Dir.mkdir(subd) unless File.exist?(subd)
       f = Time.parse(@pubd).strftime("%Y-%m-%dT%H-%M-%S") + "-" + @h[:edit_id] + ".txt"
       File.join(subd, f)
     end
-
   end
-
   # end of module
 end
-
-# test
-#rh = {:edit_id=>'1234567890', :published=>'2010-01-01T00:00:00.001+09:00'}
-
