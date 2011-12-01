@@ -111,15 +111,15 @@ module Mblogger
 
   class PostRequest < RequestBase
     def initialize(x)
-      @x = x
+      @xml, @eid = x.to_xml, x.h[:edit_id]
+      @h, @cont = x.h, x.content
       @view = ResultView.new
     end
 
     def base
-      return err_msg(1) if @x.h[:edit_id]
+      return err_msg(1) if @eid
       print "-"*5, " POST REQUEST \n"
-      print @x.to_xml
-      res = loginauth.post(posturl, @x.to_xml)
+      res = loginauth.post(posturl, @xml)
       print_status_code(res, 201)
       rh = @view.base(res, "postentry")
       return nil unless rh
@@ -127,8 +127,8 @@ module Mblogger
     end
 
     def save_file(rh)
-      h = @x.h.merge(rh)
-      h[:content] = @x.content
+      h = @h.merge(rh)
+      h[:content] = @cont
       h[:dir] = data_dir
       SaveText.new(h).base
     end
